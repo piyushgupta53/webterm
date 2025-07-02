@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebTerm - Web Terminal</title>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <h1>🚀 WebTerm</h1>
+        <p>Web-based Terminal Interface</p>
+        <div class="status">
+          <span class="status-indicator" id="status-indicator">●</span>
+          <span id="status-text">Initializing...</span>
+        </div>
+      </header>
+
+      <main class="main">
+        <div class="terminal-container">
+          <div class="terminal-header">
+            <div class="terminal-controls">
+              <button class="btn btn-primary" id="new-session-btn" disabled>
+                + New Terminal
+              </button>
+              <button class="btn btn-secondary" id="refresh-btn">
+                🔄 Refresh
+              </button>
+            </div>
+            <div class="session-info" id="session-info">No active sessions</div>
+          </div>
+
+          <div class="terminal-placeholder" id="terminal-placeholder">
+            <div class="placeholder-content">
+              <h2>Welcome to WebTerm!</h2>
+              <p>Stage 1: Basic HTTP Server ✅</p>
+              <p>Click "New Terminal" to create your first session</p>
+              <div class="feature-list">
+                <h3>Coming Soon:</h3>
+                <ul>
+                  <li>📋 Terminal Session Management</li>
+                  <li>🔌 Real-time WebSocket Communication</li>
+                  <li>💻 Full Terminal Emulator</li>
+                  <li>📱 Mobile-friendly Interface</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer class="footer">
+        <p>WebTerm v1.0.0 | Stage 1 Complete</p>
+      </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+  </body>
+</html>

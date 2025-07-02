@@ -1,0 +1,78 @@
+package main
+
+import (
+	"context"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/piyushgupta53/webterm/internal/api"
+	"github.com/piyushgupta53/webterm/internal/config"
+	"github.com/sirupsen/logrus"
+)
+
+const (
+	// AppName is the application name
+	AppName = "WebTerm"
+	// Version is the application version
+	Version = "1.0.0"
+)
+
+func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		logrus.WithError(err).Fatal("Failed to load configuration")
+	}
+
+	// Setup logging
+	if err := cfg.SetupLogging(); err != nil {
+		logrus.WithError(err).Fatal("Failed to setup logging")
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"app":     AppName,
+		"version": Version,
+		"config":  cfg,
+	}).Info("Starting application")
+
+	// Create HTTP Server
+	server := api.NewServer(cfg)
+
+	// Setup routes
+	api.SetupRoutes(server, cfg)
+
+	// Start server in a goroutine
+	serverErrors := make(chan error, 1)
+	go func() {
+		serverErrors <- server.Start()
+	}()
+
+	// Server graceful shutdown
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case err := <-serverErrors:
+		logrus.WithError(err).Fatal("Server failed to start")
+
+	case sig := <-shutdown:
+		logrus.WithField("signal", sig).Info("Shutdown signal received")
+
+		// Give outstanding requests a deadline for completion
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+
+		// Attempt graceful shutdown
+		if err := server.Shutdown(ctx); err != nil {
+			logrus.WithError(err).Error("Failed to shutdown server gracefully")
+		}
+
+		// Force shutdown
+		if err := server.Shutdown(context.Background()); err != nil {
+			logrus.WithError(err).Fatal("Failed to force shutdown server")
+		}
+	}
+
+	logrus.Info("Server shutdown complete")
+}
