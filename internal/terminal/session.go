@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/piyushgupta53/webterm/internal/types"
@@ -16,6 +17,7 @@ type SessionRunner struct {
 	pipeManager *PipeManager
 	stopChan    chan struct{}
 	stopped     bool
+	wg          sync.WaitGroup
 }
 
 // NewSessionRunner creates a new session runnner
@@ -33,12 +35,15 @@ func (sr *SessionRunner) Start() error {
 	logrus.WithField("session_id", sr.session.ID).Info("Starting session I/O bridging")
 
 	// Start PTY output to file bridging
+	sr.wg.Add(1)
 	go sr.bridgePTYOutputToFile()
 
 	// Start input pipe to PTY bridging
+	sr.wg.Add(1)
 	go sr.bridgeInputPipeToPTY()
 
 	// Monitor process status
+	sr.wg.Add(1)
 	go sr.monitorProcess()
 
 	sr.session.Status = types.SessionStatusRunning
@@ -56,11 +61,26 @@ func (sr *SessionRunner) Stop() {
 	logrus.WithField("session_id", sr.session.ID).Info("Stopping session runner")
 	sr.stopped = true
 	close(sr.stopChan)
+
+	// Wait for all goroutines to complete with timeout
+	done := make(chan struct{})
+	go func() {
+		sr.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		logrus.WithField("session_id", sr.session.ID).Debug("All session runner goroutines stopped")
+	case <-time.After(5 * time.Second):
+		logrus.WithField("session_id", sr.session.ID).Warn("Session runner stop timeout - some goroutines may still be running")
+	}
 }
 
 // bridgePTYOutputToFile reads from PTY and writes to output file
 func (sr *SessionRunner) bridgePTYOutputToFile() {
 	defer func() {
+		sr.wg.Done()
 		if r := recover(); r != nil {
 			logrus.WithFields(logrus.Fields{
 				"session_id": sr.session.ID,
@@ -129,6 +149,7 @@ func (sr *SessionRunner) bridgePTYOutputToFile() {
 // bridgeInputPipeToPTY reads from input pipe and writes to PTY
 func (sr *SessionRunner) bridgeInputPipeToPTY() {
 	defer func() {
+		sr.wg.Done()
 		if r := recover(); r != nil {
 			logrus.WithFields(logrus.Fields{
 				"session_id": sr.session.ID,
@@ -190,6 +211,7 @@ func (sr *SessionRunner) bridgeInputPipeToPTY() {
 // monitorProcess monitors the shell process and updates session status
 func (sr *SessionRunner) monitorProcess() {
 	defer func() {
+		sr.wg.Done()
 		if r := recover(); r != nil {
 			logrus.WithFields(logrus.Fields{
 				"session_id": sr.session.ID,

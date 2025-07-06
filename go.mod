@@ -6,6 +6,7 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/gorilla/mux v1.8.1
 	github.com/sirupsen/logrus v1.9.3
+	github.com/google/uuid v1.6.0
 )
 
 require (

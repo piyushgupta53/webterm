@@ -61,7 +61,7 @@ func (cm *CleanupManager) closePTY(ptty *os.File) error {
 
 // terminateProcess safely terminates a process
 func (cm *CleanupManager) terminateProcess(process *exec.Cmd) error {
-	if process == nil && process.Process == nil {
+	if process == nil || process.Process == nil {
 		return nil
 	}
 
