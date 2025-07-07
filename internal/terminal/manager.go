@@ -131,7 +131,7 @@ func (m *Manager) GetSession(sessionID string) (*types.Session, error) {
 // ListSessions returns all active sessions
 func (m *Manager) ListSessions() []*types.Session {
 	m.mutex.RLock()
-	defer m.mutex.Unlock()
+	defer m.mutex.RUnlock()
 
 	sessions := make([]*types.Session, 0, len(m.sessions))
 	for _, session := range m.sessions {

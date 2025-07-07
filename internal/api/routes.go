@@ -6,35 +6,30 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/piyushgupta53/webterm/internal/api/handlers"
 	"github.com/piyushgupta53/webterm/internal/config"
+	"github.com/piyushgupta53/webterm/internal/terminal"
 	"github.com/sirupsen/logrus"
 )
 
 // SetupRoutes configures all HTTP routes
-func SetupRoutes(server *Server, cfg *config.Config) {
+func SetupRoutes(server *Server, cfg *config.Config, sessionManager *terminal.Manager) {
 	router := server.router
 
 	// Create handlers
 	healthHandler := handlers.NewHealthHandler("1.0.0")
 	staticHandler := handlers.NewStaticHandler(cfg.StaticDir)
+	sessionHandler := handlers.NewSessionHandler(sessionManager)
 
 	// Health check point
 	router.Handle("/health", healthHandler).Methods("GET")
 
 	// Static file routes
-	// Serve index.html at root
 	router.HandleFunc("/", staticHandler.ServeIndex).Methods("GET")
-
-	// Serve static assets
 	router.PathPrefix("/static/").Handler(
 		http.StripPrefix("/static/", staticHandler),
 	).Methods("GET")
 
-	// API routes (placeholder for future endpoints)
-	// apiRouter := router.PathPrefix("/api").Subrouter() // TODO: Uncomment
-
-	// TODO: Add session management endpoints in Stage 2
-	// apiRouter.HandleFunc("/sessions", handleSessions).Methods("GET", "POST")
-	// apiRouter.HandleFunc("/sessions/{id}", handleSession).Methods("GET", "DELETE")
+	// Register session management routes
+	sessionHandler.RegisterRoutes(router)
 
 	// WebSocket route (placeholder for Stage 3)
 	// router.HandleFunc("/ws", handleWebSocket).Methods("GET")

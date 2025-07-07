@@ -9,17 +9,17 @@ import (
 
 	"github.com/piyushgupta53/webterm/internal/api"
 	"github.com/piyushgupta53/webterm/internal/config"
+	"github.com/piyushgupta53/webterm/internal/terminal"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	// AppName is the application name
 	AppName = "WebTerm"
-	// Version is the application version
 	Version = "1.0.0"
 )
 
 func main() {
+	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to load configuration")
@@ -36,11 +36,19 @@ func main() {
 		"config":  cfg,
 	}).Info("Starting application")
 
-	// Create HTTP Server
+	// Create session manager
+	sessionManager := terminal.NewManager(cfg.PipesDir)
+	defer func() {
+		if err := sessionManager.Shutdown(); err != nil {
+			logrus.WithError(err).Error("Failed to shutdown session manager")
+		}
+	}()
+
+	// Create HTTP server
 	server := api.NewServer(cfg)
 
-	// Setup routes
-	api.SetupRoutes(server, cfg)
+	// Setup routes with session manager
+	api.SetupRoutes(server, cfg, sessionManager)
 
 	// Start server in a goroutine
 	serverErrors := make(chan error, 1)
@@ -48,7 +56,7 @@ func main() {
 		serverErrors <- server.Start()
 	}()
 
-	// Server graceful shutdown
+	// Setup graceful shutdown
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
@@ -59,6 +67,11 @@ func main() {
 	case sig := <-shutdown:
 		logrus.WithField("signal", sig).Info("Shutdown signal received")
 
+		// Shutdown session manager first
+		if err := sessionManager.Shutdown(); err != nil {
+			logrus.WithError(err).Error("Failed to shutdown session manager")
+		}
+
 		// Give outstanding requests a deadline for completion
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -66,13 +79,12 @@ func main() {
 		// Attempt graceful shutdown
 		if err := server.Shutdown(ctx); err != nil {
 			logrus.WithError(err).Error("Failed to shutdown server gracefully")
+
+			if err := server.Shutdown(context.Background()); err != nil {
+				logrus.WithError(err).Fatal("Failed to force shutdown server")
+			}
 		}
 
-		// Force shutdown
-		if err := server.Shutdown(context.Background()); err != nil {
-			logrus.WithError(err).Fatal("Failed to force shutdown server")
-		}
+		logrus.Info("Server shutdown complete")
 	}
-
-	logrus.Info("Server shutdown complete")
 }
