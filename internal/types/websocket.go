@@ -50,7 +50,7 @@ func NewWebSocketMessage(msgType MessageType, data string) *WebSocketMessage {
 }
 
 // NewErroMessage creates a new error message
-func NewErroMessage(error string) *WebSocketMessage {
+func NewErrorMessage(error string) *WebSocketMessage {
 	return &WebSocketMessage{
 		Type:      MessageTypeError,
 		Error:     error,
