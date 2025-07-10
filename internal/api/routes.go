@@ -7,17 +7,19 @@ import (
 	"github.com/piyushgupta53/webterm/internal/api/handlers"
 	"github.com/piyushgupta53/webterm/internal/config"
 	"github.com/piyushgupta53/webterm/internal/terminal"
+	ws "github.com/piyushgupta53/webterm/internal/websocket"
 	"github.com/sirupsen/logrus"
 )
 
 // SetupRoutes configures all HTTP routes
-func SetupRoutes(server *Server, cfg *config.Config, sessionManager *terminal.Manager) {
+func SetupRoutes(server *Server, cfg *config.Config, sessionManager *terminal.Manager, wsHub *ws.Hub) {
 	router := server.router
 
 	// Create handlers
 	healthHandler := handlers.NewHealthHandler("1.0.0")
 	staticHandler := handlers.NewStaticHandler(cfg.StaticDir)
 	sessionHandler := handlers.NewSessionHandler(sessionManager)
+	webSocketHandler := handlers.NewWebSocketHandler(wsHub)
 
 	// Health check point
 	router.Handle("/health", healthHandler).Methods("GET")
@@ -31,8 +33,8 @@ func SetupRoutes(server *Server, cfg *config.Config, sessionManager *terminal.Ma
 	// Register session management routes
 	sessionHandler.RegisterRoutes(router)
 
-	// WebSocket route (placeholder for Stage 3)
-	// router.HandleFunc("/ws", handleWebSocket).Methods("GET")
+	// WebSocket route
+	router.Handle("/ws", webSocketHandler)
 
 	logrus.Info("Routes configured successfully")
 

@@ -219,7 +219,7 @@ func (c *Client) handlePingMessage(_ *types.WebSocketMessage) {
 	select {
 	case c.send <- pongMessage:
 	default:
-		close(c.send)
+		logrus.WithField("client_id", c.id).Warn("Client send channel is full, dropping pong message")
 	}
 }
 
@@ -230,7 +230,7 @@ func (c *Client) sendError(errorMsg string) {
 	select {
 	case c.send <- message:
 	default:
-		close(c.send)
+		logrus.WithField("client_id", c.id).Warn("Client send channel is full, dropping error message")
 	}
 }
 
@@ -239,8 +239,8 @@ func (c *Client) SendMessage(message *types.WebSocketMessage) {
 	select {
 	case c.send <- message:
 	default:
-		// Client's send channel is full, close it
-		close(c.send)
+		// Client's send channel is full, log warning but don't close
+		logrus.WithField("client_id", c.id).Warn("Client send channel is full, dropping message")
 	}
 }
 

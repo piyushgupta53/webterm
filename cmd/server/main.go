@@ -10,6 +10,7 @@ import (
 	"github.com/piyushgupta53/webterm/internal/api"
 	"github.com/piyushgupta53/webterm/internal/config"
 	"github.com/piyushgupta53/webterm/internal/terminal"
+	"github.com/piyushgupta53/webterm/internal/websocket"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,11 +45,18 @@ func main() {
 		}
 	}()
 
+	// Create WebSocket hub
+	wsHub := websocket.NewHub(sessionManager)
+
+	// Start WebSocket hub in goroutine
+	go wsHub.Run()
+	defer wsHub.Stop()
+
 	// Create HTTP server
 	server := api.NewServer(cfg)
 
-	// Setup routes with session manager
-	api.SetupRoutes(server, cfg, sessionManager)
+	// Setup routes with session manager and WebSocket hub
+	api.SetupRoutes(server, cfg, sessionManager, wsHub)
 
 	// Start server in a goroutine
 	serverErrors := make(chan error, 1)
@@ -67,7 +75,10 @@ func main() {
 	case sig := <-shutdown:
 		logrus.WithField("signal", sig).Info("Shutdown signal received")
 
-		// Shutdown session manager first
+		// Stop WebSocket hub first
+		wsHub.Stop()
+
+		// Shutdown session manager
 		if err := sessionManager.Shutdown(); err != nil {
 			logrus.WithError(err).Error("Failed to shutdown session manager")
 		}

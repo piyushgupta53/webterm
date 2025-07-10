@@ -118,7 +118,7 @@ func (m *Manager) CreateSession(req *types.SessionCreateRequest) (*types.Session
 // GetSession retrieves a session by ID
 func (m *Manager) GetSession(sessionID string) (*types.Session, error) {
 	m.mutex.RLock()
-	defer m.mutex.Unlock()
+	defer m.mutex.RUnlock()
 
 	session, exists := m.sessions[sessionID]
 	if !exists {
