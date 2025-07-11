@@ -18,6 +18,7 @@ type Manager struct {
 	cleanupManager *CleanupManager
 	mutex          sync.RWMutex
 	stopChan       chan struct{}
+	shutdownOnce   sync.Once
 }
 
 // NewManager creates a new session manager
@@ -110,6 +111,21 @@ func (m *Manager) CreateSession(req *types.SessionCreateRequest) (*types.Session
 		m.cleanupSession(sessionID)
 		return nil, fmt.Errorf("failed to start session: %w", err)
 	}
+
+	// Send initial newline to trigger shell prompt
+	go func() {
+		// Give the shell a moment to initialize
+		time.Sleep(100 * time.Millisecond)
+
+		logrus.WithField("session_id", sessionID).Debug("Sending initial newline to trigger shell prompt")
+
+		// Write a newline to trigger the shell prompt
+		if _, err := ptty.Write([]byte("\n")); err != nil {
+			logrus.WithError(err).WithField("session_id", sessionID).Debug("Failed to send initial newline")
+		} else {
+			logrus.WithField("session_id", sessionID).Debug("Initial newline sent successfully")
+		}
+	}()
 
 	logrus.WithField("session_id", sessionID).Info("Session created successfully")
 	return session, nil
@@ -261,45 +277,50 @@ func (m *Manager) cleanupInactiveSessions() {
 
 // Shutdown gracefully shuts down the session manager
 func (m *Manager) Shutdown() error {
-	logrus.Info("Shutting down session manager")
+	var shutdownErr error
 
-	// Stop background cleanup routine
-	close(m.stopChan)
+	m.shutdownOnce.Do(func() {
+		logrus.Info("Shutting down session manager")
 
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+		// Stop background cleanup routine
+		close(m.stopChan)
 
-	// Terminate all active sessions
-	sessionCount := len(m.sessions)
-	logrus.WithField("session_count", sessionCount).Info("Terminating all active sessions")
+		m.mutex.Lock()
+		defer m.mutex.Unlock()
 
-	for sessionID := range m.sessions {
-		if err := m.cleanupSessionImmediate(sessionID); err != nil {
-			logrus.WithError(err).WithField("session_id", sessionID).Error("Failed to cleanup session during shutdown")
+		// Terminate all active sessions
+		sessionCount := len(m.sessions)
+		logrus.WithField("session_count", sessionCount).Info("Terminating all active sessions")
+
+		for sessionID := range m.sessions {
+			if err := m.cleanupSessionImmediate(sessionID); err != nil {
+				logrus.WithError(err).WithField("session_id", sessionID).Error("Failed to cleanup session during shutdown")
+			}
 		}
-	}
 
-	// Verify all sessions are cleaned up
-	if len(m.sessions) > 0 {
-		logrus.WithField("remaining_sessions", len(m.sessions)).Warn("Some sessions still remain after cleanup")
-	} else {
-		logrus.Info("All sessions successfully cleaned up")
-	}
+		// Verify all sessions are cleaned up
+		if len(m.sessions) > 0 {
+			logrus.WithField("remaining_sessions", len(m.sessions)).Warn("Some sessions still remain after cleanup")
+		} else {
+			logrus.Info("All sessions successfully cleaned up")
+		}
 
-	// Verify all session runners are cleaned up
-	if len(m.sessionRunners) > 0 {
-		logrus.WithField("remaining_runners", len(m.sessionRunners)).Warn("Some session runners still remain after cleanup")
-	} else {
-		logrus.Info("All session runners successfully cleaned up")
-	}
+		// Verify all session runners are cleaned up
+		if len(m.sessionRunners) > 0 {
+			logrus.WithField("remaining_runners", len(m.sessionRunners)).Warn("Some session runners still remain after cleanup")
+		} else {
+			logrus.Info("All session runners successfully cleaned up")
+		}
 
-	// Clean up any remaining orphaned resources
-	if err := m.cleanupManager.CleanupOrphanedResources(); err != nil {
-		logrus.WithError(err).Error("Failed to cleanup orphaned resources during shutdown")
-	}
+		// Clean up any remaining orphaned resources
+		if err := m.cleanupManager.CleanupOrphanedResources(); err != nil {
+			logrus.WithError(err).Error("Failed to cleanup orphaned resources during shutdown")
+		}
 
-	logrus.Info("Session manager shutdown completed")
-	return nil
+		logrus.Info("Session manager shutdown completed")
+	})
+
+	return shutdownErr
 }
 
 // GetSessionCount returns the number of active sessions

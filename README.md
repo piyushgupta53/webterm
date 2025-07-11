@@ -77,6 +77,42 @@
 3. **Access from Anywhere**
    Open `http://your-server-ip:8080` from any device
 
+## 🔧 Current Features
+
+### ✅ **Implemented Features**
+
+- **Real-time Terminal Sessions**: Create and manage multiple terminal sessions
+- **WebSocket Communication**: Instant command execution and output streaming
+- **Session Management**: Start, stop, and switch between sessions via REST API
+- **Multiple Shell Support**: Bash, Zsh, Sh, and custom shell configurations
+- **Terminal Resizing**: Dynamic terminal size adjustment
+- **Session Isolation**: Each terminal session is completely separate
+- **Automatic Cleanup**: Sessions are automatically cleaned up when inactive
+- **Health Monitoring**: Built-in health check endpoint at `/health`
+- **Comprehensive Logging**: Structured JSON logging with configurable levels
+- **Graceful Shutdown**: Proper cleanup of resources on application shutdown
+- **Cross-platform Support**: Works on Linux, macOS, and Windows
+- **Mobile Responsive**: Touch-friendly interface for mobile devices
+
+### 🎨 **User Interface**
+
+- **Modern Web Interface**: Clean, responsive design with dark theme
+- **Session Tabs**: Easy switching between multiple terminal sessions
+- **Real-time Status**: Live connection and session status indicators
+- **Terminal Controls**: Clear, disconnect, and terminate session buttons
+- **Session Creation Modal**: Configure shell, working directory, and environment
+- **Loading Indicators**: Visual feedback during session operations
+- **Error Notifications**: User-friendly error messages and notifications
+
+### 🔌 **API Endpoints**
+
+- `GET /health` - Health check endpoint
+- `GET /api/sessions` - List all active sessions
+- `POST /api/sessions` - Create a new terminal session
+- `GET /api/sessions/{id}` - Get session details
+- `DELETE /api/sessions/{id}` - Terminate a session
+- `GET /ws` - WebSocket endpoint for real-time communication
+
 ## 🔒 Security & Safety
 
 ### ✅ **Built-in Security Features**
@@ -84,7 +120,8 @@
 - Session isolation - each terminal session is completely separate
 - Automatic cleanup - sessions are automatically closed when inactive
 - Resource limits - prevents runaway processes from consuming all resources
-- Secure communication - all data is transmitted securely
+- Secure communication - all data is transmitted via WebSocket
+- Input validation - all user inputs are validated and sanitized
 
 ### 🛡️ **Best Practices**
 
@@ -92,6 +129,26 @@
 - Use firewall rules to restrict access to trusted IPs
 - Regularly update the application for security patches
 - Monitor session activity and logs
+- Configure appropriate session timeouts
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+- `WEBTERM_HOST` - Server host (default: localhost)
+- `WEBTERM_PORT` - Server port (default: 8080)
+- `WEBTERM_STATIC_DIR` - Static files directory (default: web/static)
+- `WEBTERM_LOG_LEVEL` - Logging level (default: info)
+- `WEBTERM_PIPES_DIR` - Named pipes directory (default: /tmp/webterm-pipes)
+
+### Session Configuration
+
+When creating a session, you can specify:
+
+- **Shell**: Choose from bash, zsh, sh, or custom shell path
+- **Working Directory**: Set the initial working directory
+- **Environment Variables**: Custom environment variables for the session
+- **Command**: Optional initial command to run
 
 ## 💡 Use Cases & Examples
 
@@ -174,6 +231,7 @@ systemctl restart mysql redis nginx
 - Automatic resource cleanup
 - Comprehensive logging and monitoring
 - Scalable architecture
+- Graceful shutdown handling
 
 ## 📱 Works Everywhere
 
@@ -191,30 +249,18 @@ systemctl restart mysql redis nginx
 - Responsive design
 - On-screen keyboard support
 
-## 🔄 What's Coming Next?
+## 🔮 Future Features
 
-### 🚀 **Stage 2 (Coming Soon)**
+### 🚀 **Planned Enhancements**
 
-- **Real-time Terminal Sessions**: Create and manage multiple terminal sessions
-- **WebSocket Communication**: Instant command execution and output
-- **Session Management**: Start, stop, and switch between sessions
-- **Command History**: Save and replay previous commands
-
-### 🎯 **Stage 3 (Planned)**
-
-- **Full Terminal Emulation**: Complete ANSI color and formatting support
 - **File Transfer**: Upload and download files through the browser
 - **Session Sharing**: Share terminal sessions with team members
-- **Mobile Optimization**: Touch-friendly terminal controls
-
-### 🔮 **Future Features**
-
 - **Multi-user Support**: User authentication and session isolation
 - **Plugin System**: Extend functionality with custom plugins
 - **API Integration**: Connect with other tools and services
 - **Cloud Deployment**: One-click deployment to cloud platforms
 
-### 🚀 **Contribute**
+## 🚀 **Contribute**
 
 - Report bugs and request features
 - Submit code improvements

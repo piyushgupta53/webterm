@@ -68,18 +68,40 @@ func (cm *CleanupManager) terminateProcess(process *exec.Cmd) error {
 	pid := process.Process.Pid
 	logrus.WithField("pid", pid).Info("Terminating process")
 
+	// Check if process has already been waited on
+	if process.ProcessState != nil {
+		logrus.WithField("pid", pid).Debug("Process has already been waited on")
+		return nil
+	}
+
+	// Check if process is still running
+	if err := process.Process.Signal(syscall.Signal(0)); err != nil {
+		// Process is not running or we can't signal it
+		logrus.WithField("pid", pid).Debug("Process is not running or cannot be signaled")
+		return nil
+	}
+
 	// Try graceful termination first
 	if err := process.Process.Signal(syscall.SIGTERM); err != nil {
 		logrus.WithError(err).WithField("pid", pid).Warn("Failed to send SIGTERM, trying SIGKILL")
 
 		if err := process.Process.Kill(); err != nil {
-			return err
+			// If kill also fails, the process might already be dead
+			logrus.WithError(err).WithField("pid", pid).Debug("Failed to kill process (might already be dead)")
+			return nil
 		}
 	}
 
 	// Wait for process to exit with timeout
 	done := make(chan error, 1)
 	go func() {
+		// Handle the case where Wait() has already been called
+		defer func() {
+			if r := recover(); r != nil {
+				logrus.WithField("pid", pid).Debug("Process.Wait() already called")
+				done <- nil
+			}
+		}()
 		done <- process.Wait()
 	}()
 
@@ -95,13 +117,11 @@ func (cm *CleanupManager) terminateProcess(process *exec.Cmd) error {
 	case <-time.After(5 * time.Second):
 		// Force kill after timeout
 		if err := process.Process.Kill(); err != nil {
-			return err
+			logrus.WithError(err).WithField("pid", pid).Debug("Failed to force kill process")
 		}
 
-		// Wait a bit more for force kill to take effect
-		go func() {
-			process.Wait()
-		}()
+		// Don't wait again, just return
+		logrus.WithField("pid", pid).Info("Process force killed")
 		return nil
 	}
 }

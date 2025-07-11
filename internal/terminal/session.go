@@ -1,7 +1,6 @@
 package terminal
 
 import (
-	"bufio"
 	"io"
 	"os"
 	"sync"
@@ -49,6 +48,11 @@ func (sr *SessionRunner) Start() error {
 	sr.session.Status = types.SessionStatusRunning
 	sr.session.UpdateLastActive()
 
+	logrus.WithField("session_id", sr.session.ID).Info("Session runner started successfully")
+
+	// Add a small delay to allow shell to start and produce initial output
+	time.Sleep(100 * time.Millisecond)
+
 	return nil
 }
 
@@ -84,12 +88,12 @@ func (sr *SessionRunner) bridgePTYOutputToFile() {
 		if r := recover(); r != nil {
 			logrus.WithFields(logrus.Fields{
 				"session_id": sr.session.ID,
-				"panir":      r,
+				"panic":      r,
 			}).Error("Panic in PTY output bridge")
 		}
 	}()
 
-	logrus.WithField("session_id", sr.session.ID).Debug("Starting PTY output bridge")
+	logrus.WithField("session_id", sr.session.ID).Info("Starting PTY output bridge")
 
 	// Open output file for writing
 	outputFile, err := os.OpenFile(sr.session.OutputFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
@@ -108,21 +112,12 @@ func (sr *SessionRunner) bridgePTYOutputToFile() {
 			logrus.WithField("session_id", sr.session.ID).Debug("PTY output bridge stopping")
 			return
 		default:
-			// Set read timeout to avoid blocking indefinetly
-			if err := sr.session.PTY.SetReadDeadline(time.Now().Add(1 * time.Second)); err != nil {
-				continue
-			}
-
+			// Read from PTY (this will block until data is available)
 			n, err := sr.session.PTY.Read(buffer)
 			if err != nil {
 				if err == io.EOF {
 					logrus.WithField("session_id", sr.session.ID).Info("PTY output stream ended")
 					return
-				}
-
-				// Check if it's a timeout error
-				if os.IsTimeout(err) {
-					continue
 				}
 				logrus.WithError(err).WithField("session_id", sr.session.ID).Error("Error reading from PTY")
 				return
@@ -139,6 +134,12 @@ func (sr *SessionRunner) bridgePTYOutputToFile() {
 				if err := outputFile.Sync(); err != nil {
 					logrus.WithError(err).WithField("session_id", sr.session.ID).Error("Error syncing output file")
 				}
+
+				logrus.WithFields(logrus.Fields{
+					"session_id": sr.session.ID,
+					"bytes_read": n,
+					"data":       string(buffer[:n]),
+				}).Info("PTY output written to file")
 
 				sr.session.UpdateLastActive()
 			}
@@ -158,52 +159,63 @@ func (sr *SessionRunner) bridgeInputPipeToPTY() {
 		}
 	}()
 
-	logrus.WithField("session_id", sr.session.ID).Debug("Starting input pipe bridge")
+	logrus.WithField("session_id", sr.session.ID).Info("Starting input pipe bridge")
 
+	// Buffer for reading from input pipe
+	buffer := make([]byte, 1024)
+
+	// Open input pipe for reading (this will block until a writer connects)
+	inputFile, err := os.OpenFile(sr.session.InputPipe, os.O_RDONLY, 0)
+	if err != nil {
+		logrus.WithError(err).WithField("session_id", sr.session.ID).Error("Failed to open input pipe")
+		return
+	}
+	defer inputFile.Close()
+
+	logrus.WithFields(logrus.Fields{
+		"session_id": sr.session.ID,
+		"input_pipe": sr.session.InputPipe,
+	}).Info("Input pipe opened for reading")
+
+	// Read continuously from the pipe
 	for {
 		select {
 		case <-sr.stopChan:
 			logrus.WithField("session_id", sr.session.ID).Debug("Input pipe bridge stopping")
 			return
 		default:
-			// Open input pipe for reading (this will block until a writer connects)
-			inputFile, err := os.OpenFile(sr.session.InputPipe, os.O_RDONLY, 0)
+			// Read from pipe (this will block until data is available)
+			n, err := inputFile.Read(buffer)
 			if err != nil {
-				logrus.WithError(err).WithField("session_id", sr.session.ID).Error("Failed to open input pipe")
-				time.Sleep(1 * time.Second)
-				continue
-			}
-
-			// Read from input pipe and write to PTY
-			scanner := bufio.NewScanner(inputFile)
-			scanner.Split(bufio.ScanBytes) // Read byte by byte for immediate response
-
-			for scanner.Scan() {
-				select {
-				case <-sr.stopChan:
-					inputFile.Close()
+				if err == io.EOF {
+					logrus.WithField("session_id", sr.session.ID).Info("Input pipe stream ended")
 					return
-				default:
-					data := scanner.Bytes()
-					if len(data) > 0 {
-						if _, err := sr.session.PTY.Write(data); err != nil {
-							logrus.WithError(err).WithField("session_id", sr.session.ID).Error("Error writing to PTY")
-							inputFile.Close()
-							return
-						}
-						sr.session.UpdateLastActive()
-					}
 				}
-			}
-
-			if err := scanner.Err(); err != nil {
 				logrus.WithError(err).WithField("session_id", sr.session.ID).Error("Error reading from input pipe")
+				return
 			}
 
-			inputFile.Close()
+			if n > 0 {
+				logrus.WithFields(logrus.Fields{
+					"session_id": sr.session.ID,
+					"bytes_read": n,
+					"data":       string(buffer[:n]),
+				}).Info("Input read from pipe")
 
-			// Small delay before reopening pipe
-			time.Sleep(100 * time.Millisecond)
+				// Write to PTY
+				if _, err := sr.session.PTY.Write(buffer[:n]); err != nil {
+					logrus.WithError(err).WithField("session_id", sr.session.ID).Error("Error writing to PTY")
+					return
+				}
+
+				logrus.WithFields(logrus.Fields{
+					"session_id":    sr.session.ID,
+					"bytes_written": n,
+					"data":          string(buffer[:n]),
+				}).Info("Input written to PTY")
+
+				sr.session.UpdateLastActive()
+			}
 		}
 	}
 }

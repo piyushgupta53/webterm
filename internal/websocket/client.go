@@ -53,7 +53,7 @@ func NewClient(conn *websocket.Conn, hub *Hub, sessionID, clientID, userAgent st
 		hub:         hub,
 		sessionID:   sessionID,
 		id:          clientID,
-		send:        make(chan *types.WebSocketMessage),
+		send:        make(chan *types.WebSocketMessage, 256), // Buffered channel to prevent blocking
 		remoteAddr:  conn.RemoteAddr().String(),
 		userAgent:   userAgent,
 		connectedAt: time.Now(),
@@ -176,28 +176,17 @@ func (c *Client) writePump() {
 
 // handleInputMessage processes input messages from the client
 func (c *Client) handleInputMessage(message *types.WebSocketMessage) {
-	logrus.WithFields(logrus.Fields{
-		"client_id":  c.id,
-		"session_id": c.sessionID,
-		"data_len":   len(message.Data),
-	}).Debug("Handling input message")
-
 	// Send input to session's input pipe
-	c.hub.sessionInput <- &SessionInput{
+	sessionInput := &SessionInput{
 		SessionID: c.sessionID,
 		Data:      message.Data,
 	}
+
+	c.hub.sessionInput <- sessionInput
 }
 
 // handleResizeMessage processes resize messages from the client
 func (c *Client) handleResizeMessage(message *types.WebSocketMessage) {
-	logrus.WithFields(logrus.Fields{
-		"client_id":  c.id,
-		"session_id": c.sessionID,
-		"rows":       message.Rows,
-		"cols":       message.Cols,
-	}).Debug("Handling resize message")
-
 	// Send resize request to session
 	c.hub.sessionResize <- &SessionResize{
 		SessionID: c.sessionID,
@@ -208,8 +197,6 @@ func (c *Client) handleResizeMessage(message *types.WebSocketMessage) {
 
 // handlePingMessage processes ping messages from the client
 func (c *Client) handlePingMessage(_ *types.WebSocketMessage) {
-	logrus.WithField("client_id", c.id).Debug("Handling ping message")
-
 	// Send pong response
 	pongMessage := &types.WebSocketMessage{
 		Type:      types.MessageTypePong,

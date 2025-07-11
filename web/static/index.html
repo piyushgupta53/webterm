@@ -4,57 +4,183 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WebTerm - Web Terminal</title>
+    <link rel="stylesheet" href="/static/lib/xterm.css" />
     <link rel="stylesheet" href="/static/css/styles.css" />
   </head>
   <body>
-    <div class="container">
-      <header class="header">
-        <h1>🚀 WebTerm</h1>
-        <p>Web-based Terminal Interface</p>
-        <div class="status">
-          <span class="status-indicator" id="status-indicator">●</span>
-          <span id="status-text">Initializing...</span>
+    <div class="app-container">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <h1 class="app-title">🚀 WebTerm</h1>
+          <div class="connection-status">
+            <span class="status-indicator" id="connection-indicator">●</span>
+            <span class="status-text" id="connection-status"
+              >Connecting...</span
+            >
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="session-controls">
+            <button class="btn btn-primary" id="new-session-btn">
+              <span>+</span> New Terminal
+            </button>
+            <button
+              class="btn btn-secondary"
+              id="refresh-btn"
+              title="Refresh sessions"
+            >
+              🔄
+            </button>
+            <div class="session-selector">
+              <select id="session-select" disabled>
+                <option value="">No sessions</option>
+              </select>
+            </div>
+          </div>
         </div>
       </header>
 
-      <main class="main">
-        <div class="terminal-container">
-          <div class="terminal-header">
-            <div class="terminal-controls">
-              <button class="btn btn-primary" id="new-session-btn" disabled>
-                + New Terminal
+      <!-- Main terminal area -->
+      <main class="terminal-main">
+        <!-- Terminal container -->
+        <div class="terminal-wrapper" id="terminal-wrapper">
+          <div class="terminal-header" id="terminal-header">
+            <div class="terminal-info">
+              <span class="session-id" id="current-session-id">No session</span>
+              <span class="session-status" id="current-session-status">●</span>
+            </div>
+            <div class="terminal-actions">
+              <button
+                class="btn-icon"
+                id="terminal-clear"
+                title="Clear terminal"
+              >
+                🗑️
               </button>
-              <button class="btn btn-secondary" id="refresh-btn">
-                🔄 Refresh
+              <button
+                class="btn-icon"
+                id="terminal-disconnect"
+                title="Disconnect"
+                disabled
+              >
+                🔌
+              </button>
+              <button
+                class="btn-icon btn-danger"
+                id="terminal-terminate"
+                title="Terminate session"
+                disabled
+              >
+                ❌
               </button>
             </div>
-            <div class="session-info" id="session-info">No active sessions</div>
           </div>
 
-          <div class="terminal-placeholder" id="terminal-placeholder">
-            <div class="placeholder-content">
-              <h2>Welcome to WebTerm!</h2>
-              <p>Stage 1: Basic HTTP Server ✅</p>
-              <p>Click "New Terminal" to create your first session</p>
-              <div class="feature-list">
-                <h3>Coming Soon:</h3>
-                <ul>
-                  <li>📋 Terminal Session Management</li>
-                  <li>🔌 Real-time WebSocket Communication</li>
-                  <li>💻 Full Terminal Emulator</li>
-                  <li>📱 Mobile-friendly Interface</li>
-                </ul>
+          <!-- Xterm.js terminal will be mounted here -->
+          <div class="terminal-container" id="terminal-container">
+            <div class="terminal-placeholder" id="terminal-placeholder">
+              <div class="placeholder-content">
+                <div class="terminal-icon">💻</div>
+                <h2>Welcome to WebTerm!</h2>
+                <p>Create a new terminal session to get started</p>
+                <div class="quick-actions">
+                  <button
+                    class="btn btn-primary btn-large"
+                    id="quick-new-session"
+                  >
+                    Create Terminal Session
+                  </button>
+                </div>
+                <div class="feature-highlights">
+                  <div class="feature">
+                    <span class="feature-icon">⚡</span>
+                    <span>Real-time collaboration</span>
+                  </div>
+                  <div class="feature">
+                    <span class="feature-icon">📱</span>
+                    <span>Mobile responsive</span>
+                  </div>
+                  <div class="feature">
+                    <span class="feature-icon">🔄</span>
+                    <span>Multiple sessions</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </main>
 
-      <footer class="footer">
-        <p>WebTerm v1.0.0 | Stage 1 Complete</p>
-      </footer>
+      <!-- Session tabs -->
+      <div class="session-tabs" id="session-tabs">
+        <div class="tabs-container" id="tabs-container">
+          <!-- Session tabs will be dynamically added here -->
+        </div>
+        <button class="tab-add" id="tab-add-btn" title="New session">+</button>
+      </div>
+
+      <!-- Modals and overlays -->
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal" id="session-modal">
+          <div class="modal-header">
+            <h3>Create New Session</h3>
+            <button class="modal-close" id="modal-close">×</button>
+          </div>
+          <div class="modal-body">
+            <form id="session-form">
+              <div class="form-group">
+                <label for="session-shell">Shell:</label>
+                <select id="session-shell">
+                  <option value="">Default</option>
+                  <option value="/bin/bash">Bash</option>
+                  <option value="/bin/zsh">Zsh</option>
+                  <option value="/bin/sh">Sh</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="session-workdir">Working Directory:</label>
+                <input
+                  type="text"
+                  id="session-workdir"
+                  placeholder="Leave empty for default"
+                />
+              </div>
+              <div class="form-actions">
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  id="session-cancel"
+                >
+                  Cancel
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  Create Session
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading indicator -->
+      <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loading-text">Creating session...</div>
+      </div>
+
+      <!-- Notification area -->
+      <div class="notifications" id="notifications">
+        <!-- Notifications will be dynamically added here -->
+      </div>
     </div>
 
+    <!-- Scripts -->
+    <script src="/static/lib/xterm.js"></script>
+    <script src="/static/lib/xterm-addon-fit.js"></script>
+    <script src="/static/js/websocket.js"></script>
+    <script src="/static/js/terminal.js"></script>
+    <script src="/static/js/session.js"></script>
     <script src="/static/js/app.js"></script>
   </body>
 </html>

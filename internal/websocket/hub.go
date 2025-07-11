@@ -47,6 +47,9 @@ type Hub struct {
 
 	// Output watchers for sessions
 	outputWatchers map[string]*OutputWatcher
+
+	// Input pipe writers for sessions (kept open for the session lifetime)
+	inputWriters map[string]*os.File
 }
 
 // OutputWatcher watches a session's output file and broadcasts changes
@@ -69,6 +72,7 @@ func NewHub(sessionManager *terminal.Manager) *Hub {
 		sessionManager: sessionManager,
 		stopChan:       make(chan struct{}),
 		outputWatchers: make(map[string]*OutputWatcher),
+		inputWriters:   make(map[string]*os.File),
 	}
 }
 
@@ -153,9 +157,10 @@ func (h *Hub) unregisterClient(client *Client) {
 			delete(sessionClients, client)
 			client.Close()
 
-			// Stop output watcher if no more clients for this session
+			// Stop output watcher and close input writer if no more clients for this session
 			if len(sessionClients) == 0 {
 				h.stopOutputWatcher(client.sessionID)
+				h.closeInputWriter(client.sessionID)
 				delete(h.clients, client.sessionID)
 			}
 		}
@@ -172,7 +177,8 @@ func (h *Hub) handleSessionInput(input *SessionInput) {
 	logrus.WithFields(logrus.Fields{
 		"session_id": input.SessionID,
 		"data_len":   len(input.Data),
-	}).Debug("Handling session input")
+		"data":       input.Data, // Log the actual input data
+	}).Info("Handling session input")
 
 	// Get session
 	session, err := h.sessionManager.GetSession(input.SessionID)
@@ -181,20 +187,35 @@ func (h *Hub) handleSessionInput(input *SessionInput) {
 		return
 	}
 
-	// Write to session's input pipe
-	inputFile, err := os.OpenFile(session.InputPipe, os.O_WRONLY, 0)
-	if err != nil {
-		logrus.WithError(err).WithField("session_id", input.SessionID).Error("Failed to open input pipe")
-		return
-	}
-	defer inputFile.Close()
+	// Get or create input pipe writer for this session
+	inputFile, exists := h.inputWriters[input.SessionID]
+	if !exists {
+		// Open input pipe for writing (this will block until a reader connects)
+		var err error
+		inputFile, err = os.OpenFile(session.InputPipe, os.O_WRONLY, 0)
+		if err != nil {
+			logrus.WithError(err).WithField("session_id", input.SessionID).Error("Failed to open input pipe")
+			return
+		}
+		h.inputWriters[input.SessionID] = inputFile
 
+		logrus.WithFields(logrus.Fields{
+			"session_id": input.SessionID,
+			"input_pipe": session.InputPipe,
+		}).Info("Input pipe opened for writing")
+	}
+
+	// Write to the input pipe
 	if _, err := inputFile.WriteString(input.Data); err != nil {
 		logrus.WithError(err).WithField("session_id", input.SessionID).Error("Failed to write to input pipe")
 		return
 	}
 
-	logrus.WithField("session_id", input.SessionID).Debug("Input written to session")
+	logrus.WithFields(logrus.Fields{
+		"session_id": input.SessionID,
+		"data_len":   len(input.Data),
+		"data":       input.Data,
+	}).Info("Input written to session successfully")
 }
 
 // handleSessionResize handles resize requests for sessions
@@ -248,6 +269,15 @@ func (h *Hub) stopOutputWatcher(sessionID string) {
 	}
 }
 
+// closeInputWriter closes the input pipe writer for a session
+func (h *Hub) closeInputWriter(sessionID string) {
+	if inputFile, exists := h.inputWriters[sessionID]; exists {
+		logrus.WithField("session_id", sessionID).Debug("Closing input pipe writer")
+		inputFile.Close()
+		delete(h.inputWriters, sessionID)
+	}
+}
+
 // broadcast sends a message to all clients of a session
 func (h *Hub) broadcast(sessionID string, message *types.WebSocketMessage) {
 	if sessionClients, exists := h.clients[sessionID]; exists {
@@ -279,10 +309,24 @@ func (h *Hub) shutdown() {
 			client.Close()
 		}
 	}
+
+	// Close all input pipe writers
+	for sessionID, inputFile := range h.inputWriters {
+		logrus.WithField("session_id", sessionID).Debug("Closing input pipe writer")
+		inputFile.Close()
+	}
+
+	// Clear the maps to prevent double-closing
+	h.outputWatchers = make(map[string]*OutputWatcher)
+	h.clients = make(map[string]map[*Client]bool)
+	h.inputWriters = make(map[string]*os.File)
 }
 
 // Stop stops the hub
 func (h *Hub) Stop() {
+	// Call shutdown first to clean up resources
+	h.shutdown()
+	// Then close the stop channel
 	close(h.stopChan)
 }
 
@@ -364,7 +408,8 @@ func (ow *OutputWatcher) checkForOutput() error {
 		logrus.WithFields(logrus.Fields{
 			"session_id": ow.sessionID,
 			"bytes_read": n,
-		}).Debug("Broadcasted new output")
+			"data":       string(buffer[:n]),
+		}).Info("Broadcasted new output")
 	}
 
 	return nil

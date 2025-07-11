@@ -48,6 +48,11 @@ func CreatePTY(config *PTYConfig) (*os.File, *exec.Cmd, error) {
 		return nil, nil, fmt.Errorf("failed to start PTY: %w", err)
 	}
 
+	// Configure PTY terminal attributes for web terminal use
+	if err := configurePTYTerminalAttributes(ptty); err != nil {
+		logrus.WithError(err).Warn("Failed to configure PTY terminal attributes, continuing anyway")
+	}
+
 	logrus.WithFields(logrus.Fields{
 		"pty_name": ptty.Name(),
 		"pid":      cmd.Process.Pid,
@@ -168,4 +173,14 @@ func SetPTYSize(ptty *os.File, rows, cols uint16) error {
 		Rows: rows,
 		Cols: cols,
 	})
+}
+
+// configurePTYTerminalAttributes configures the PTY for web terminal use
+func configurePTYTerminalAttributes(_ *os.File) error {
+	// For web terminals, we want to keep the default terminal behavior
+	// which includes echo, so the shell can properly echo back input
+	// We'll skip the raw mode configuration to maintain proper shell behavior
+
+	logrus.Debug("PTY terminal attributes configured for web terminal use (default mode with echo)")
+	return nil
 }
