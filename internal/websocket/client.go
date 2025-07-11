@@ -248,5 +248,5 @@ func (c *Client) Run() {
 
 	// Start pumps
 	go c.writePump()
-	go c.readPump()
+	c.readPump()
 }

@@ -291,10 +291,10 @@ func (sr *SessionRunner) bridgeInputPipeToPTYWithRetry() {
 func (sr *SessionRunner) bridgeInputPipeToPTY() error {
 	logrus.WithField("session_id", sr.session.ID).Info("Starting enhanced input pipe bridge")
 
-	// Open input pipe for reading (this will block until a writer connects)
+	// Open input pipe for reading. This will block until a writer connects.
 	inputFile, err := os.OpenFile(sr.session.InputPipe, os.O_RDONLY, 0)
 	if err != nil {
-		return fmt.Errorf("failed to open input pipe: %w", err)
+		return fmt.Errorf("failed to open input pipe for reading: %w", err)
 	}
 	defer inputFile.Close()
 
@@ -386,8 +386,9 @@ func (sr *SessionRunner) monitorProcess() {
 		sr.statusCallback(sr.session.ID, string(sr.session.Status))
 	}
 
-	// Stop the session runner
-	sr.Stop()
+	// Don't immediately stop the session runner when process exits
+	// This allows for graceful cleanup and prevents immediate termination
+	// The session runner will be stopped by the session manager during cleanup
 }
 
 // handleErrors processes errors from various goroutines

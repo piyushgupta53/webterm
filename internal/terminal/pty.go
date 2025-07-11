@@ -5,10 +5,13 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/creack/pty"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/term"
 )
 
 // PTYConfig holds configuration for PTY creation
@@ -70,7 +73,8 @@ func resolveShellCommand(config *PTYConfig) (string, []string) {
 
 	// If shell is explicity specified, use it
 	if config.Shell != "" {
-		return config.Shell, []string{}
+		// Ensure interactive mode for the specified shell
+		return config.Shell, getInteractiveArgs(config.Shell)
 	}
 
 	// Default shell resolution based on os
@@ -85,27 +89,44 @@ func resolveShellCommand(config *PTYConfig) (string, []string) {
 	default: // Unix-like systems
 		// Try to get user's shell from environment or passwd
 		if shell := os.Getenv("SHELL"); shell != "" {
-			return shell, []string{}
+			return shell, getInteractiveArgs(shell)
 		}
 
 		// Default fallbacks for Unix
 		shells := []string{"/bin/bash", "/bin/sh", "/bin/zsh"}
 		for _, shell := range shells {
 			if _, err := os.Stat(shell); err == nil {
-				return shell, []string{}
+				return shell, getInteractiveArgs(shell)
 			}
 		}
 
 		// Last resort
-		return "/bin/sh", []string{}
+		return "/bin/sh", getInteractiveArgs("/bin/sh")
+	}
+}
+
+// getInteractiveArgs returns the arguments needed to start a shell in interactive mode
+func getInteractiveArgs(shell string) []string {
+	switch filepath.Base(shell) {
+	case "bash":
+		return []string{"-i"}
+	case "zsh":
+		return []string{"-i"}
+	case "sh":
+		return []string{"-i"}
+	case "fish":
+		return []string{"-i"}
+	default:
+		// For unknown shells, try with -i flag
+		return []string{"-i"}
 	}
 }
 
 // resolveWorkingDirectory determines the working directory for the session
 func resolveWorkingDirectory(workingDir string) string {
 	if workingDir != "" {
-		// Verify the directory exists
-		if stat, err := os.Stat(workingDir); err != nil && stat.IsDir() {
+		// Verify the directory exists and is a directory
+		if stat, err := os.Stat(workingDir); err == nil && stat.IsDir() {
 			return workingDir
 		}
 
@@ -113,8 +134,8 @@ func resolveWorkingDirectory(workingDir string) string {
 	}
 
 	// Try user home directory
-	if currentUser, err := user.Current(); err != nil {
-		if stat, err := os.Stat(currentUser.HomeDir); err != nil && stat.IsDir() {
+	if currentUser, err := user.Current(); err == nil {
+		if stat, err := os.Stat(currentUser.HomeDir); err == nil && stat.IsDir() {
 			return currentUser.HomeDir
 		}
 	}
@@ -143,17 +164,30 @@ func setupEnvironment(customEnv map[string]string) []string {
 		env = append(env, fmt.Sprintf("%s=%s", key, value))
 	}
 
-	// Ensure TERM is set for proper terminal behavior
-	termSet := false
+	// Ensure essential environment variables are set for interactive shells
+	essentialVars := map[string]string{
+		"TERM":    "xterm-256color",
+		"COLUMNS": "80",
+		"LINES":   "24",
+		"PS1":     "$ ",
+		"PS2":     "> ",
+		"PS3":     "#? ",
+		"PS4":     "+ ",
+	}
+
+	// Check which essential variables are already set
+	existingVars := make(map[string]bool)
 	for _, envVar := range env {
-		if len(envVar) >= 5 && envVar[:5] == "TERM=" {
-			termSet = true
-			break
+		if idx := strings.Index(envVar, "="); idx > 0 {
+			existingVars[envVar[:idx]] = true
 		}
 	}
 
-	if !termSet {
-		env = append(env, "TERM=xterm-256color")
+	// Add missing essential variables
+	for key, value := range essentialVars {
+		if !existingVars[key] {
+			env = append(env, fmt.Sprintf("%s=%s", key, value))
+		}
 	}
 
 	return env
@@ -176,11 +210,23 @@ func SetPTYSize(ptty *os.File, rows, cols uint16) error {
 }
 
 // configurePTYTerminalAttributes configures the PTY for web terminal use
-func configurePTYTerminalAttributes(_ *os.File) error {
-	// For web terminals, we want to keep the default terminal behavior
-	// which includes echo, so the shell can properly echo back input
-	// We'll skip the raw mode configuration to maintain proper shell behavior
+func configurePTYTerminalAttributes(ptty *os.File) error {
+	// For web terminals, we need to configure the PTY properly
+	// to ensure the shell stays interactive and doesn't exit immediately
 
-	logrus.Debug("PTY terminal attributes configured for web terminal use (default mode with echo)")
+	// Set the PTY to raw mode to handle terminal control sequences properly
+	// This is essential for interactive shells to work correctly
+	if _, err := term.MakeRaw(int(ptty.Fd())); err != nil {
+		return fmt.Errorf("failed to set pty to raw mode: %w", err)
+	}
+
+	if err := pty.Setsize(ptty, &pty.Winsize{
+		Rows: 24,
+		Cols: 80,
+	}); err != nil {
+		return fmt.Errorf("failed to set initial PTY size: %w", err)
+	}
+
+	logrus.Debug("PTY terminal attributes configured for web terminal use with proper sizing")
 	return nil
 }

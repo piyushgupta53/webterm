@@ -103,7 +103,7 @@ func (m *Manager) CreateSession(req *types.SessionCreateRequest) (*types.Session
 	// Store session
 	m.sessions[sessionID] = session
 
-	// Create and start session Runner
+	// Create session runner
 	runner := NewSessionRunner(session, m.pipeManager)
 
 	// Set status callback if available
@@ -113,16 +113,22 @@ func (m *Manager) CreateSession(req *types.SessionCreateRequest) (*types.Session
 
 	m.sessionRunners[sessionID] = runner
 
-	if err := runner.Start(); err != nil {
-		// Clean up on start failure
-		m.cleanupSession(sessionID)
-		return nil, fmt.Errorf("failed to start session: %w", err)
-	}
-
-	// Send initial newline to trigger shell prompt
+	// Give the shell process time to initialize before starting the session runner
 	go func() {
-		// Give the shell a moment to initialize
-		time.Sleep(100 * time.Millisecond)
+		// Wait a bit longer for the shell to fully initialize
+		time.Sleep(500 * time.Millisecond)
+
+		logrus.WithField("session_id", sessionID).Debug("Starting session runner after shell initialization")
+
+		if err := runner.Start(); err != nil {
+			logrus.WithError(err).WithField("session_id", sessionID).Error("Failed to start session runner")
+			// Clean up on start failure
+			m.cleanupSession(sessionID)
+			return
+		}
+
+		// Send initial newline to trigger shell prompt
+		time.Sleep(200 * time.Millisecond)
 
 		logrus.WithField("session_id", sessionID).Debug("Sending initial newline to trigger shell prompt")
 

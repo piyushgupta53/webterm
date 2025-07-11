@@ -34,7 +34,7 @@ func SetupRoutes(server *Server, cfg *config.Config, sessionManager *terminal.Ma
 	sessionHandler.RegisterRoutes(router)
 
 	// WebSocket route
-	router.Handle("/ws", webSocketHandler)
+	router.Handle("/api/ws", webSocketHandler)
 
 	logrus.Info("Routes configured successfully")
 
