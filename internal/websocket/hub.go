@@ -248,12 +248,22 @@ func (h *Hub) handleSessionResize(resize *SessionResize) {
 func (h *Hub) startOutputWatcher(session *types.Session) {
 	logrus.WithField("session_id", session.ID).Info("Starting output watcher")
 
+	// Get current file size to start reading from the current position
+	var lastPosition int64 = 0
+	if fileInfo, err := os.Stat(session.OutputFile); err == nil {
+		lastPosition = fileInfo.Size()
+		logrus.WithFields(logrus.Fields{
+			"session_id": session.ID,
+			"file_size":  lastPosition,
+		}).Debug("Output file exists, starting from current size")
+	}
+
 	watcher := &OutputWatcher{
 		sessionID:    session.ID,
 		outputFile:   session.OutputFile,
 		hub:          h,
 		stopChan:     make(chan struct{}),
-		lastPosition: 0,
+		lastPosition: lastPosition,
 	}
 
 	h.outputWatchers[session.ID] = watcher
@@ -285,6 +295,17 @@ func (h *Hub) broadcast(sessionID string, message *types.WebSocketMessage) {
 			client.SendMessage(message)
 		}
 	}
+}
+
+// BroadcastSessionStatus broadcasts a session status update to all clients of that session
+func (h *Hub) BroadcastSessionStatus(sessionID string, status string) {
+	logrus.WithFields(logrus.Fields{
+		"session_id": sessionID,
+		"status":     status,
+	}).Info("Broadcasting session status update")
+
+	statusMessage := types.NewStatusMessage(sessionID, status)
+	h.broadcast(sessionID, statusMessage)
 }
 
 // getTotalClientCount returns the total number of connected clients
@@ -326,8 +347,15 @@ func (h *Hub) shutdown() {
 func (h *Hub) Stop() {
 	// Call shutdown first to clean up resources
 	h.shutdown()
-	// Then close the stop channel
-	close(h.stopChan)
+
+	// Use select to avoid closing an already closed channel
+	select {
+	case <-h.stopChan:
+		// Channel already closed, do nothing
+	default:
+		// Close the stop channel
+		close(h.stopChan)
+	}
 }
 
 // RegisterClient registers a client with the hub
@@ -377,6 +405,13 @@ func (ow *OutputWatcher) checkForOutput() error {
 	if currentSize <= ow.lastPosition {
 		return nil // No new data
 	}
+
+	logrus.WithFields(logrus.Fields{
+		"session_id":    ow.sessionID,
+		"current_size":  currentSize,
+		"last_position": ow.lastPosition,
+		"new_bytes":     currentSize - ow.lastPosition,
+	}).Debug("Detected new output in file")
 
 	// Read new data
 	file, err := os.Open(ow.outputFile)

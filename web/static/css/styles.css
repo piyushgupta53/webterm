@@ -362,6 +362,7 @@ body {
   white-space: nowrap;
   min-width: 120px;
   max-width: 200px;
+  position: relative;
 }
 
 .session-tab:hover {
@@ -371,6 +372,30 @@ body {
 .session-tab.active {
   background: var(--primary-color);
   color: white;
+}
+
+.session-tab.stopping {
+  background: var(--warning-color);
+  color: white;
+  opacity: 0.8;
+}
+
+.session-tab.stopped {
+  background: var(--danger-color);
+  color: white;
+  opacity: 0.6;
+}
+
+.session-tab.error {
+  background: var(--danger-color);
+  color: white;
+  opacity: 0.7;
+}
+
+.session-tab.starting {
+  background: var(--info-color);
+  color: white;
+  opacity: 0.9;
 }
 
 .tab-label {
@@ -388,10 +413,13 @@ body {
   padding: 2px;
   border-radius: 2px;
   font-size: 0.75rem;
+  opacity: 0.8;
+  transition: var(--transition);
 }
 
 .tab-close:hover {
   background: rgba(255, 255, 255, 0.2);
+  opacity: 1;
 }
 
 .tab-add {
@@ -726,4 +754,33 @@ body {
 /* Show class utility */
 .show {
   display: block !important;
+}
+
+/* Session status indicators */
+.session-status {
+  font-size: 0.75rem;
+  margin-left: 8px;
+}
+
+.session-status.running {
+  color: var(--success-color);
+}
+
+.session-status.starting {
+  color: var(--info-color);
+  animation: pulse 2s infinite;
+}
+
+.session-status.stopping {
+  color: var(--warning-color);
+  animation: pulse 1s infinite;
+}
+
+.session-status.stopped {
+  color: var(--danger-color);
+}
+
+.session-status.error {
+  color: var(--danger-color);
+  animation: blink 1s infinite;
 }

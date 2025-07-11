@@ -48,9 +48,18 @@ func main() {
 	// Create WebSocket hub
 	wsHub := websocket.NewHub(sessionManager)
 
+	// Set up status callback to broadcast session status updates
+	sessionManager.SetStatusCallback(func(sessionID string, status string) {
+		wsHub.BroadcastSessionStatus(sessionID, status)
+	})
+
 	// Start WebSocket hub in goroutine
 	go wsHub.Run()
-	defer wsHub.Stop()
+
+	// Ensure WebSocket hub is stopped on exit
+	defer func() {
+		wsHub.Stop()
+	}()
 
 	// Create HTTP server
 	server := api.NewServer(cfg)

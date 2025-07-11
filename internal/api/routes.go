@@ -16,7 +16,7 @@ func SetupRoutes(server *Server, cfg *config.Config, sessionManager *terminal.Ma
 	router := server.router
 
 	// Create handlers
-	healthHandler := handlers.NewHealthHandler("1.0.0")
+	healthHandler := handlers.NewEnhancedHealthHandler("1.0.0")
 	staticHandler := handlers.NewStaticHandler(cfg.StaticDir)
 	sessionHandler := handlers.NewSessionHandler(sessionManager)
 	webSocketHandler := handlers.NewWebSocketHandler(wsHub)

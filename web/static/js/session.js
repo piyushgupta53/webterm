@@ -200,6 +200,9 @@ class SessionManager {
 
   async terminateSession(sessionId) {
     try {
+      // Immediately update UI to show termination in progress
+      this.updateSessionStatus(sessionId, "stopping");
+
       const response = await fetch(`${this.apiBaseUrl}/sessions/${sessionId}`, {
         method: "DELETE",
       });
@@ -233,6 +236,9 @@ class SessionManager {
         `Failed to terminate session: ${error.message}`,
         "error"
       );
+
+      // Revert UI state if termination failed
+      this.loadSessions();
     }
   }
 
@@ -258,6 +264,11 @@ class SessionManager {
         throw new Error("Session not found");
       }
 
+      // Check if session is in a valid state for switching
+      if (session.status === "stopped" || session.status === "error") {
+        throw new Error(`Cannot switch to session in ${session.status} state`);
+      }
+
       this.currentSessionId = sessionId;
 
       // Update UI
@@ -280,6 +291,17 @@ class SessionManager {
         `Failed to switch to session: ${error.message}`,
         "error"
       );
+
+      // If switching failed, try to switch to another available session
+      const availableSessions = Array.from(this.sessions.values()).filter(
+        (s) => s.status === "running" || s.status === "starting"
+      );
+
+      if (availableSessions.length > 0) {
+        await this.switchToSession(availableSessions[0].id);
+      } else {
+        this.showPlaceholder();
+      }
     }
   }
 
@@ -304,7 +326,13 @@ class SessionManager {
       } else {
         this.elements.sessionSelect.disabled = false;
 
-        sessions.forEach((session) => {
+        // Filter out stopped/error sessions for the dropdown
+        const activeSessions = sessions.filter(
+          (session) =>
+            session.status === "running" || session.status === "starting"
+        );
+
+        activeSessions.forEach((session) => {
           const option = document.createElement("option");
           option.value = session.id;
           option.textContent = `${session.id.substring(0, 8)}... (${
@@ -313,9 +341,15 @@ class SessionManager {
           this.elements.sessionSelect.appendChild(option);
         });
 
-        // Select current session
-        if (this.currentSessionId) {
-          this.elements.sessionSelect.value = this.currentSessionId;
+        // Select current session if it's still active
+        if (this.currentSessionId && this.sessions.has(this.currentSessionId)) {
+          const currentSession = this.sessions.get(this.currentSessionId);
+          if (
+            currentSession.status === "running" ||
+            currentSession.status === "starting"
+          ) {
+            this.elements.sessionSelect.value = this.currentSessionId;
+          }
         }
       }
     }
@@ -333,6 +367,21 @@ class SessionManager {
     if (this.elements.currentSessionStatus) {
       this.elements.currentSessionStatus.textContent = "●";
       this.elements.currentSessionStatus.className = `session-status ${session.status}`;
+    }
+  }
+
+  updateSessionStatus(sessionId, status) {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.status = status;
+
+      // Update UI if this is the current session
+      if (this.currentSessionId === sessionId) {
+        this.updateCurrentSessionInfo(session);
+      }
+
+      // Update tabs
+      this.updateSessionTabs();
     }
   }
 
@@ -357,6 +406,11 @@ class SessionManager {
     const tab = document.createElement("div");
     tab.className = "session-tab";
     tab.dataset.sessionId = session.id;
+
+    // Add status indicator to tab
+    const statusClass =
+      session.status === "running" ? "active" : session.status;
+    tab.classList.add(statusClass);
 
     tab.innerHTML = `
             <span class="tab-label">${session.id.substring(0, 8)}...</span>

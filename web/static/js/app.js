@@ -108,6 +108,42 @@ class WebTermApp {
       console.error("WebSocket error:", error);
       this.setConnectionStatus("error");
     });
+
+    // Handle session status updates
+    this.websocketClient.on("status", (data) => {
+      console.log("Session status update:", data);
+      if (this.sessionManager) {
+        this.sessionManager.updateSessionStatus(data.sessionId, data.status);
+      }
+    });
+
+    // Handle session termination
+    this.websocketClient.on("session_terminated", (data) => {
+      console.log("Session terminated via WebSocket:", data);
+      if (this.sessionManager) {
+        // Remove the terminated session from the UI
+        this.sessionManager.sessions.delete(data.sessionId);
+        this.sessionManager.updateSessionsList(
+          Array.from(this.sessionManager.sessions.values())
+        );
+        this.sessionManager.removeSessionTab(data.sessionId);
+
+        // If this was the current session, switch to another or show placeholder
+        if (this.sessionManager.currentSessionId === data.sessionId) {
+          this.sessionManager.currentSessionId = null;
+          const remainingSessions = Array.from(
+            this.sessionManager.sessions.keys()
+          );
+          if (remainingSessions.length > 0) {
+            this.sessionManager.switchToSession(remainingSessions[0]);
+          } else {
+            this.sessionManager.showPlaceholder();
+          }
+        }
+
+        this.sessionManager.showNotification("Session terminated", "info");
+      }
+    });
   }
 
   setupInitialState() {

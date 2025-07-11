@@ -10,6 +10,7 @@ class WebSocketClient {
     this.reconnectDelay = 1000;
     this.messageHandlers = new Map();
     this.connectionCallbacks = new Set();
+    this.terminated = false; // Flag to prevent reconnection for terminated sessions
 
     // Heartbeat
     this.pingInterval = null;
@@ -46,27 +47,23 @@ class WebSocketClient {
 
   // Connection management
   connect(sessionId) {
-    if (this.connecting || (this.connected && this.sessionId === sessionId)) {
+    if (this.connecting || this.connected) {
       return Promise.resolve();
     }
 
+    // Don't connect if session is terminated
+    if (this.terminated) {
+      return Promise.reject(new Error("Session is terminated"));
+    }
+
+    this.connecting = true;
+    this.sessionId = sessionId;
+
     return new Promise((resolve, reject) => {
-      this.sessionId = sessionId;
-      this.connecting = true;
+      const wsUrl = `ws://${window.location.host}/api/ws?session=${sessionId}`;
+      this.ws = new WebSocket(wsUrl);
 
-      const wsUrl = `${
-        window.location.protocol === "https:" ? "wss:" : "ws:"
-      }//${window.location.host}/ws?session=${sessionId}`;
-
-      console.log("Connecting to WebSocket:", wsUrl);
-
-      try {
-        this.ws = new WebSocket(wsUrl);
-        this.setupEventHandlers(resolve, reject);
-      } catch (error) {
-        this.connecting = false;
-        reject(error);
-      }
+      this.setupEventHandlers(resolve, reject);
     });
   }
 
@@ -109,10 +106,11 @@ class WebSocketClient {
       console.log("WebSocket disconnected:", event.code, event.reason);
       this.emit("disconnected", { code: event.code, reason: event.reason });
 
-      // Auto-reconnect if not a normal closure
+      // Auto-reconnect if not a normal closure and session is not terminated
       if (
         event.code !== 1000 &&
-        this.reconnectAttempts < this.maxReconnectAttempts
+        this.reconnectAttempts < this.maxReconnectAttempts &&
+        !this.terminated
       ) {
         this.scheduleReconnect();
       }
@@ -160,6 +158,16 @@ class WebSocketClient {
           sessionId: message.session_id,
           status: message.status,
         });
+
+        // Handle session termination
+        if (message.status === "stopped" || message.status === "error") {
+          console.log("Session terminated via WebSocket:", message.session_id);
+          this.terminated = true; // Prevent reconnection attempts
+          this.emit("session_terminated", {
+            sessionId: message.session_id,
+            status: message.status,
+          });
+        }
         break;
       case "error":
         this.emit("error", message.error);
@@ -271,6 +279,7 @@ class WebSocketClient {
     this.connecting = false;
     this.sessionId = null;
     this.reconnectAttempts = 0;
+    this.terminated = false; // Reset terminated flag on disconnect
   }
 
   destroy() {

@@ -16,6 +16,7 @@ type Manager struct {
 	sessionRunners map[string]*SessionRunner
 	pipeManager    *PipeManager
 	cleanupManager *CleanupManager
+	statusCallback func(sessionID string, status string) // Callback for status updates
 	mutex          sync.RWMutex
 	stopChan       chan struct{}
 	shutdownOnce   sync.Once
@@ -104,6 +105,12 @@ func (m *Manager) CreateSession(req *types.SessionCreateRequest) (*types.Session
 
 	// Create and start session Runner
 	runner := NewSessionRunner(session, m.pipeManager)
+
+	// Set status callback if available
+	if m.statusCallback != nil {
+		runner.SetStatusCallback(m.statusCallback)
+	}
+
 	m.sessionRunners[sessionID] = runner
 
 	if err := runner.Start(); err != nil {
@@ -178,6 +185,11 @@ func (m *Manager) TerminateSession(sessionID string) error {
 	return m.cleanupSession(sessionID)
 }
 
+// SetStatusCallback sets the callback function for status updates
+func (m *Manager) SetStatusCallback(callback func(sessionID string, status string)) {
+	m.statusCallback = callback
+}
+
 // cleanupSession performs cleanup for a session (assumes mutex is held)
 func (m *Manager) cleanupSession(sessionID string) error {
 	session := m.sessions[sessionID]
@@ -197,6 +209,11 @@ func (m *Manager) cleanupSession(sessionID string) error {
 	session.Status = types.SessionStatusStopped
 	session.PTY = nil
 	session.Process = nil
+
+	// Broadcast status update if callback is set
+	if m.statusCallback != nil {
+		m.statusCallback(sessionID, string(types.SessionStatusStopped))
+	}
 
 	// Remove from active sessions after a delay
 	go func() {
