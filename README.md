@@ -1,64 +1,75 @@
-# WebTerm - Access Your Terminal from Anywhere 🌐
+# WebTerm - Advanced Web-Based Terminal 🌐
 
-**WebTerm** is a web-based terminal that lets you run commands and manage your system directly from your browser. Think of it as having a terminal window that works on any device with a web browser - no installation required!
+**WebTerm** is a high-performance, production-ready web-based terminal that provides secure, real-time access to your system's command line interface from any modern web browser. Built with Go and featuring advanced session management, WebSocket communication, and comprehensive monitoring capabilities.
 
-## ✨ What Can You Do With WebTerm?
+## ✨ Key Features
 
-### 🖥️ **Access Your Terminal Anywhere**
+### 🚀 **Advanced Session Management**
 
-- Open your terminal sessions from any computer, tablet, or phone
-- No need to install SSH clients or terminal apps
-- Works on Windows, Mac, Linux, iOS, and Android
+- **Enhanced I/O Bridging**: Sophisticated named pipe-based communication for optimal performance
+- **Multi-Session Support**: Create and manage multiple concurrent terminal sessions
+- **Session Isolation**: Complete separation between sessions for security
+- **Automatic Cleanup**: Intelligent resource management and cleanup
+- **Retry Mechanisms**: Robust error handling with automatic retry logic
 
-### 🔧 **Manage Your System Remotely**
+### ⚡ **High Performance Architecture**
 
-- Run system commands and scripts
-- Monitor server processes and logs
-- Manage files and directories
-- Install and configure software
+- **Optimized Output Buffering**: Intelligent buffering for smooth real-time output
+- **Connection Pooling**: Efficient WebSocket connection management
+- **Memory Optimization**: Automatic garbage collection and memory management
+- **Performance Monitoring**: Real-time metrics and performance tracking
+- **Resource Limits**: Prevents runaway processes and resource exhaustion
 
-### 🚀 **Perfect for Remote Work**
+### 🔧 **Production-Ready Features**
 
-- Access your development environment from anywhere
-- Debug issues on remote servers
-- Perform maintenance tasks on the go
-- Share terminal access with team members
+- **Comprehensive Logging**: Structured JSON logging with configurable levels
+- **Health Monitoring**: Built-in health checks and system monitoring
+- **Graceful Shutdown**: Proper cleanup and resource management
+- **Cross-Platform Support**: Works on Linux, macOS, and Windows
+- **Mobile Responsive**: Touch-optimized interface for mobile devices
+
+### 🛡️ **Security & Reliability**
+
+- **Session Isolation**: Each terminal session is completely separate
+- **Input Validation**: Comprehensive input sanitization and validation
+- **Resource Monitoring**: Real-time monitoring of system resources
+- **Error Recovery**: Automatic error detection and recovery mechanisms
+- **Secure Communication**: WebSocket-based encrypted communication
 
 ## 🎯 Who Is This For?
 
-### 👨‍💻 **Developers**
+### 👨‍💻 **DevOps Engineers & System Administrators**
 
-- Access your development environment remotely
-- Debug production issues from anywhere
-- Run deployment scripts and maintenance tasks
-- Collaborate with team members on server management
+- Remote server management and monitoring
+- Production environment troubleshooting
+- Automated deployment and maintenance tasks
+- Real-time system monitoring and alerting
 
-### 🏠 **Home Users**
+### 🏢 **Development Teams**
 
-- Access your home server from work
-- Manage your media server remotely
-- Control smart home devices via command line
-- Backup and maintain your personal systems
+- Remote development environment access
+- Collaborative debugging and troubleshooting
+- CI/CD pipeline management
+- Production issue investigation
 
-## 🚀 Getting Started
+### 🏠 **Home Users & Enthusiasts**
 
-### Quick Start (30 seconds!)
+- Remote home server management
+- IoT device administration
+- Personal project development
+- Learning and experimentation
 
-1. **Start WebTerm**
+## 🚀 Quick Start
 
-   ```bash
-   go run cmd/server/main.go
-   ```
+### Prerequisites
 
-2. **Open Your Browser**
-   Navigate to `http://localhost:8080`
+- Go 1.23.1 or later
+- Linux, macOS, or Windows
+- Modern web browser (Chrome, Firefox, Safari, Edge)
 
-3. **Start Using Your Terminal**
-   Click "New Terminal" and begin running commands!
+### Installation & Running
 
-### For Production Use
-
-1. **Install on Your Server**
+1. **Clone and Build**
 
    ```bash
    git clone https://github.com/piyushgupta53/webterm.git
@@ -66,213 +77,272 @@
    go build -o webterm cmd/server/main.go
    ```
 
-2. **Configure for Your Environment**
+2. **Start WebTerm**
 
    ```bash
-   export WEBTERM_HOST=0.0.0.0
-   export WEBTERM_PORT=8080
    ./webterm
    ```
 
-3. **Access from Anywhere**
-   Open `http://your-server-ip:8080` from any device
+3. **Access the Interface**
+   Open your browser and navigate to `http://localhost:8080`
 
-## 🔧 Current Features
+4. **Create Your First Session**
+   Click "New Terminal" and start using your web-based terminal!
 
-### ✅ **Implemented Features**
+### Docker Deployment
 
-- **Real-time Terminal Sessions**: Create and manage multiple terminal sessions
-- **WebSocket Communication**: Instant command execution and output streaming
-- **Session Management**: Start, stop, and switch between sessions via REST API
-- **Multiple Shell Support**: Bash, Zsh, Sh, and custom shell configurations
-- **Terminal Resizing**: Dynamic terminal size adjustment
-- **Session Isolation**: Each terminal session is completely separate
-- **Automatic Cleanup**: Sessions are automatically cleaned up when inactive
-- **Health Monitoring**: Built-in health check endpoint at `/health`
-- **Comprehensive Logging**: Structured JSON logging with configurable levels
-- **Graceful Shutdown**: Proper cleanup of resources on application shutdown
-- **Cross-platform Support**: Works on Linux, macOS, and Windows
-- **Mobile Responsive**: Touch-friendly interface for mobile devices
+```bash
+# Build the Docker image
+docker build -t webterm .
 
-### 🎨 **User Interface**
-
-- **Modern Web Interface**: Clean, responsive design with dark theme
-- **Session Tabs**: Easy switching between multiple terminal sessions
-- **Real-time Status**: Live connection and session status indicators
-- **Terminal Controls**: Clear, disconnect, and terminate session buttons
-- **Session Creation Modal**: Configure shell, working directory, and environment
-- **Loading Indicators**: Visual feedback during session operations
-- **Error Notifications**: User-friendly error messages and notifications
-
-### 🔌 **API Endpoints**
-
-- `GET /health` - Health check endpoint
-- `GET /api/sessions` - List all active sessions
-- `POST /api/sessions` - Create a new terminal session
-- `GET /api/sessions/{id}` - Get session details
-- `DELETE /api/sessions/{id}` - Terminate a session
-- `GET /ws` - WebSocket endpoint for real-time communication
-
-## 🔒 Security & Safety
-
-### ✅ **Built-in Security Features**
-
-- Session isolation - each terminal session is completely separate
-- Automatic cleanup - sessions are automatically closed when inactive
-- Resource limits - prevents runaway processes from consuming all resources
-- Secure communication - all data is transmitted via WebSocket
-- Input validation - all user inputs are validated and sanitized
-
-### 🛡️ **Best Practices**
-
-- Run WebTerm behind a reverse proxy with HTTPS
-- Use firewall rules to restrict access to trusted IPs
-- Regularly update the application for security patches
-- Monitor session activity and logs
-- Configure appropriate session timeouts
+# Run the container
+docker run -p 8080:8080 --rm webterm
+```
 
 ## ⚙️ Configuration
 
 ### Environment Variables
 
-- `WEBTERM_HOST` - Server host (default: localhost)
-- `WEBTERM_PORT` - Server port (default: 8080)
-- `WEBTERM_STATIC_DIR` - Static files directory (default: web/static)
-- `WEBTERM_LOG_LEVEL` - Logging level (default: info)
-- `WEBTERM_PIPES_DIR` - Named pipes directory (default: /tmp/webterm-pipes)
+| Variable                  | Default              | Description                              |
+| ------------------------- | -------------------- | ---------------------------------------- |
+| `WEBTERM_HOST`            | `localhost`          | Server host address                      |
+| `WEBTERM_PORT`            | `8080`               | Server port                              |
+| `WEBTERM_STATIC_DIR`      | `web/static`         | Static files directory                   |
+| `WEBTERM_LOG_LEVEL`       | `info`               | Logging level (debug, info, warn, error) |
+| `WEBTERM_PIPES_DIR`       | `/tmp/webterm-pipes` | Named pipes directory                    |
+| `WEBTERM_SESSION_TIMEOUT` | `30m`                | Session timeout duration                 |
 
-### Session Configuration
+### Session Configuration Options
 
-When creating a session, you can specify:
+When creating a session, you can configure:
 
-- **Shell**: Choose from bash, zsh, sh, or custom shell path
+- **Shell**: Choose from bash, zsh, sh, or specify a custom shell path
 - **Working Directory**: Set the initial working directory
 - **Environment Variables**: Custom environment variables for the session
-- **Command**: Optional initial command to run
+- **Initial Command**: Optional command to run when session starts
 
-## 💡 Use Cases & Examples
+## 🔌 API Reference
 
-### 🏢 **Remote Server Management**
+### REST Endpoints
+
+| Endpoint             | Method | Description                   |
+| -------------------- | ------ | ----------------------------- |
+| `/health`            | GET    | Health check endpoint         |
+| `/api/sessions`      | GET    | List all active sessions      |
+| `/api/sessions`      | POST   | Create a new terminal session |
+| `/api/sessions/{id}` | GET    | Get session details           |
+| `/api/sessions/{id}` | DELETE | Terminate a session           |
+
+### WebSocket Endpoints
+
+| Endpoint           | Description                      |
+| ------------------ | -------------------------------- |
+| `/ws?session={id}` | Real-time terminal communication |
+
+### Message Types
+
+- **Input**: Send terminal input to session
+- **Output**: Receive terminal output from session
+- **Resize**: Resize terminal dimensions
+- **Status**: Session status updates
+- **Error**: Error notifications
+
+## 📊 Monitoring & Metrics
+
+### Built-in Metrics
+
+WebTerm provides comprehensive monitoring capabilities:
+
+- **Session Metrics**: Active sessions, creation/termination rates
+- **Connection Metrics**: WebSocket connections, throughput
+- **Performance Metrics**: Response times, request rates
+- **Resource Metrics**: Memory usage, goroutines, file descriptors
+- **Error Metrics**: Error rates by type
+
+### Health Checks
 
 ```bash
-# Check server health
+# Check application health
+curl http://localhost:8080/health
+
+# Response example:
+{
+  "status": "healthy",
+  "version": "1.0.0",
+  "uptime": "2h30m15s",
+  "active_sessions": 3,
+  "active_connections": 5
+}
+```
+
+## 🏗️ Architecture
+
+### Core Components
+
+1. **Session Manager** (`internal/terminal/manager.go`)
+
+   - Manages terminal session lifecycle
+   - Handles PTY creation and process management
+   - Implements session isolation and cleanup
+
+2. **WebSocket Hub** (`internal/websocket/hub.go`)
+
+   - Manages real-time client connections
+   - Handles message routing and broadcasting
+   - Implements connection pooling and optimization
+
+3. **Enhanced I/O Bridge** (`internal/terminal/session.go`)
+
+   - Sophisticated named pipe-based communication
+   - Optimized output buffering and streaming
+   - Robust error handling and retry mechanisms
+
+4. **Performance Optimizer** (`internal/performance/optimizer.go`)
+
+   - Connection pooling and management
+   - Memory optimization and garbage collection
+   - Performance monitoring and metrics collection
+
+5. **Monitoring System** (`internal/monitoring/metrics.go`)
+   - Real-time metrics collection
+   - Resource monitoring and alerting
+   - Performance analysis and reporting
+
+### Data Flow
+
+```
+Browser ←→ WebSocket Hub ←→ Session Manager ←→ PTY ←→ Shell Process
+                ↓                    ↓
+         Connection Pool      Enhanced I/O Bridge
+                ↓                    ↓
+         Performance Monitor    Named Pipes
+```
+
+## 🔒 Security Considerations
+
+### Built-in Security Features
+
+- **Session Isolation**: Complete separation between terminal sessions
+- **Input Validation**: Comprehensive sanitization of all user inputs
+- **Resource Limits**: Prevents resource exhaustion attacks
+- **Secure Communication**: WebSocket-based encrypted data transmission
+- **Automatic Cleanup**: Prevents resource leaks and security issues
+
+### Production Security Recommendations
+
+1. **Use HTTPS**: Deploy behind a reverse proxy with SSL/TLS
+2. **Network Security**: Restrict access with firewall rules
+3. **Authentication**: Implement user authentication for production use
+4. **Access Control**: Use VPN or private networks for sensitive environments
+5. **Regular Updates**: Keep the application updated with security patches
+
+## 🚀 Performance Features
+
+### Optimization Techniques
+
+- **Output Buffering**: Intelligent buffering for smooth real-time output
+- **Connection Pooling**: Efficient WebSocket connection management
+- **Memory Management**: Automatic garbage collection and optimization
+- **Resource Monitoring**: Real-time system resource tracking
+- **Performance Metrics**: Comprehensive performance analysis
+
+### Scalability
+
+- **Horizontal Scaling**: Stateless design allows multiple instances
+- **Load Balancing**: Compatible with standard load balancers
+- **Resource Efficiency**: Minimal memory and CPU footprint
+- **Connection Management**: Efficient handling of multiple concurrent users
+
+## 💡 Use Cases
+
+### 🏢 **Enterprise Environments**
+
+```bash
+# Production server monitoring
 htop
 df -h
-systemctl status nginx
+systemctl status nginx mysql redis
 
-# Update and maintain
-apt update && apt upgrade
+# Application deployment
+cd /var/www/production
+git pull origin main
+docker-compose up -d
 systemctl restart services
 ```
 
-### 🖥️ **Development Workflow**
+### 🖥️ **Development Workflows**
 
 ```bash
-# Navigate to project
-cd /var/www/myapp
-
-# Check git status
+# Project development
+cd /home/dev/project
 git status
-git pull origin main
-
-# Run tests
-npm test
-python -m pytest
-
-# Deploy
-docker-compose up -d
+npm install
+npm run test
+docker build -t myapp .
 ```
 
-### 📊 **System Monitoring**
+### 📊 **System Administration**
 
 ```bash
-# Monitor system resources
-top
-iotop
-netstat -tulpn
-
-# Check logs
-tail -f /var/log/nginx/access.log
-journalctl -f
+# System maintenance
+apt update && apt upgrade
+systemctl restart problematic-service
+journalctl -f -u nginx
+free -h && df -h
 ```
 
-### 🔧 **Emergency Maintenance**
+### 🔧 **Emergency Response**
 
 ```bash
-# Stop problematic services
-systemctl stop problematic-service
-
-# Free up disk space
+# Critical issue resolution
+systemctl stop failing-service
 find /var/log -name "*.log" -size +100M -delete
-
-# Restart critical services
-systemctl restart mysql redis nginx
+systemctl restart critical-services
 ```
 
-## 🎨 What Makes WebTerm Special?
+## 🎨 User Interface
 
-### ⚡ **Lightning Fast**
+### Modern Web Interface
 
-- Instant terminal startup
-- Real-time command execution
-- Minimal resource usage
-- Optimized for low-latency connections
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
+- **Dark Theme**: Easy on the eyes for extended use
+- **Session Tabs**: Easy switching between multiple terminal sessions
+- **Real-time Status**: Live connection and session status indicators
+- **Terminal Controls**: Clear, disconnect, and terminate session buttons
 
-### 🔧 **Easy to Use**
+### Browser Compatibility
 
-- No complex setup or configuration
-- Works out of the box
-- Familiar terminal experience
-- Intuitive controls and navigation
+- **Desktop**: Chrome, Firefox, Safari, Edge (latest versions)
+- **Mobile**: iOS Safari, Android Chrome
+- **Features**: Full keyboard support, touch optimization, responsive design
 
-### 🛠️ **Production Ready**
+## 🔮 Roadmap
 
-- Robust error handling and recovery
-- Automatic resource cleanup
-- Comprehensive logging and monitoring
-- Scalable architecture
-- Graceful shutdown handling
+### Planned Features
 
-## 📱 Works Everywhere
+- **User Authentication**: Multi-user support with role-based access
+- **Session Sharing**: Collaborative terminal sessions
+- **File Transfer**: Upload/download files through the browser
+- **Plugin System**: Extensible architecture for custom functionality
+- **Cloud Integration**: One-click deployment to cloud platforms
+- **Advanced Monitoring**: Integration with external monitoring systems
 
-### 💻 **Desktop Browsers**
+### Contributing
 
-- Chrome, Firefox, Safari, Edge
-- Full keyboard support
-- Mouse and touchpad navigation
-- Multiple terminal sessions
-
-### 📱 **Mobile Devices**
-
-- iOS Safari and Android Chrome
-- Touch-optimized interface
-- Responsive design
-- On-screen keyboard support
-
-## 🔮 Future Features
-
-### 🚀 **Planned Enhancements**
-
-- **File Transfer**: Upload and download files through the browser
-- **Session Sharing**: Share terminal sessions with team members
-- **Multi-user Support**: User authentication and session isolation
-- **Plugin System**: Extend functionality with custom plugins
-- **API Integration**: Connect with other tools and services
-- **Cloud Deployment**: One-click deployment to cloud platforms
-
-## 🚀 **Contribute**
-
-- Report bugs and request features
-- Submit code improvements
-- Help with documentation
-- Share your use cases and success stories
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
 ## 📄 License
 
-WebTerm is open source and available under the [MIT License](LICENSE). Feel free to use it for personal or commercial projects.
+WebTerm is open source and available under the [MIT License](LICENSE).
+
+## 🤝 Support
+
+- **Issues**: Report bugs and request features on [GitHub Issues](https://github.com/piyushgupta53/webterm/issues)
+- **Discussions**: Join the conversation on [GitHub Discussions](https://github.com/piyushgupta53/webterm/discussions)
+- **Documentation**: Check our [Wiki](https://github.com/piyushgupta53/webterm/wiki) for detailed guides
 
 ---
 
-**Ready to access your terminal from anywhere?** 🚀
+**Ready to experience the future of web-based terminal access?** 🚀
 
-Start WebTerm today and experience the freedom of web-based terminal access!
+Start WebTerm today and unlock the power of remote terminal management!
