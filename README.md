@@ -1,4 +1,4 @@
-# WebTerm - Advanced Web-Based Terminal 🌐
+# WebTerm - Web-Based Terminal 🌐
 
 **WebTerm** is a high-performance, production-ready web-based terminal that provides secure, real-time access to your system's command line interface from any modern web browser. Built with Go and featuring advanced session management, WebSocket communication, and comprehensive monitoring capabilities.
 
@@ -35,6 +35,10 @@
 - **Resource Monitoring**: Real-time monitoring of system resources
 - **Error Recovery**: Automatic error detection and recovery mechanisms
 - **Secure Communication**: WebSocket-based encrypted communication
+
+## Demo
+https://github.com/user-attachments/assets/1397006a-df05-4620-bd75-25a43bbaff27
+
 
 ## 🎯 Who Is This For?
 
@@ -326,23 +330,3 @@ systemctl restart critical-services
 - **Plugin System**: Extensible architecture for custom functionality
 - **Cloud Integration**: One-click deployment to cloud platforms
 - **Advanced Monitoring**: Integration with external monitoring systems
-
-### Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-## 📄 License
-
-WebTerm is open source and available under the [MIT License](LICENSE).
-
-## 🤝 Support
-
-- **Issues**: Report bugs and request features on [GitHub Issues](https://github.com/piyushgupta53/webterm/issues)
-- **Discussions**: Join the conversation on [GitHub Discussions](https://github.com/piyushgupta53/webterm/discussions)
-- **Documentation**: Check our [Wiki](https://github.com/piyushgupta53/webterm/wiki) for detailed guides
-
----
-
-**Ready to experience the future of web-based terminal access?** 🚀
-
-Start WebTerm today and unlock the power of remote terminal management!
